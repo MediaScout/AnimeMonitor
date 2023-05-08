@@ -36,7 +36,7 @@ int main(int argc, char *argv[])
     freopen("CONOUT$", "w", stdout);
     printf("Init application!!!\n");
 #endif
-    ResourceCache::LoadJSONProviders();
+    ResourceCache::loadJsonProviders();
 
     QApplication a(argc, argv);
     MainWindow w;

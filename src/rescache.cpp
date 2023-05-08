@@ -15,6 +15,8 @@
 
 #include "rescache.h"
 #include "apijimov.h"
+#include "curlconnection.h"
+#include "provider.h"
 
 #include <QtNetwork/QNetworkAccessManager>
 #include <QtNetwork/QNetworkReply>
@@ -23,14 +25,13 @@
 #include <QApplication>
 #include <QException>
 #include <QMessageBox>
+#include <QFileInfo>
+#include <QBuffer>
+#include <QDebug>
+#include <QToolButton>
 
-#include <curl/curl.h>
 #include <iostream>
 
-/**
- * @brief The QueryProvidersThread class is used with the only function
- * of querying the API to obtain as a result the JSON with the providers.
- */
 class QueryProvidersThread : public QThread
 {
 public:
@@ -38,71 +39,212 @@ public:
 };
 
 static QueryProvidersThread* query = nullptr;
-QJsonObject ResourceCache::providers;
 
-/**
- * @brief SaveJSONProviders write the providers in a JSON file
- * @param object
- */
-static void SaveJSONProviders(const QJsonObject& object)
+ResourceCache* ResourceCache::_cache = nullptr;
+
+void ResourceCache::saveFile(const QString& filename, const QByteArray& byteArray)
 {
-    QFile file("providers.json");
-    if (!file.open(QIODevice::WriteOnly))
-        throw std::exception("Failed to open providers.json file");
-    file.write(QJsonDocument(object).toJson());
-    file.close();
+    QFile file(filename);
+    if (!file.open(QIODevice::WriteOnly)) {
+        qDebug() << "Failed to open \"" + filename + "\" file";
+    } else {
+        file.write(byteArray);
+        file.close();
+    }
 }
 
-void ResourceCache::LoadJSONProviders()
+void ResourceCache::loadJsonProviders()
 {
     if (query != nullptr && !query->isFinished())
         return;
     if (query != nullptr)
         delete query;
     query = new QueryProvidersThread();
+    QObject::connect(query, &QThread::finished, query, [&](){
+        query->deleteLater();
+        query = nullptr;
+        auto array = getInstance()->_providers["data"];
+        if (array.isArray())
+            Provider::setProviders(array.toArray());
+        _cache->notifyLoadedProviders();
+    });
     query->start();
 }
 
-size_t WriteCallback(char *ptr, size_t size, size_t nmemb, std::string *userdata) {
-    userdata->append(ptr, size * nmemb);
-    return size * nmemb;
+void ResourceCache::addComboBox(QComboBox *combobox)
+{
+    auto* cache = getInstance();
+    cache->_event_mutex.lock();
+    if (cache->_providers.length() != 0) {
+        cache->addElementsComboBox(combobox);
+    } else if (!cache->_comboboxs.contains(combobox)) {
+       cache->_comboboxs.append(combobox);
+    }
+    cache->_event_mutex.unlock();
+}
+
+void ResourceCache::addToolBar(QToolBar *toolbar)
+{
+    auto* cache = getInstance();
+    cache->_event_mutex.lock();
+    if (cache->_providers.length() != 0) {
+        cache->addButtonsToolBar(toolbar);
+    } else if (!cache->_toolbars.contains(toolbar)) {
+        cache->_toolbars.append(toolbar);
+    }
+    cache->_event_mutex.unlock();
+}
+
+QJsonObject ResourceCache::readJson(const QString &filename)
+{
+    QFile file(filename);
+    if (!file.open(QIODevice::ReadOnly))
+        throw std::exception(QString("Failed to open " + filename + " file").toStdString().c_str());
+    QJsonObject object = QJsonDocument::fromJson(file.readAll()).object();
+    file.close();
+    return object;
+}
+
+QIcon* ResourceCache::downloadImage(const QString &url, bool save, const QString& name)
+{
+    try {
+        CurlConnection curl;
+        curl.setURL(url).followLocation(true);
+        QByteArray data;
+        if (curl.readData(data)) {
+            QFile outfile(name);
+            if (save && !outfile.open(QIODevice::WriteOnly))
+                qDebug() << "Failed to open " + name + " file";
+            else {
+                outfile.write(data);
+                outfile.close();
+            }
+            return new QIcon(name);
+        }
+    }  catch (const std::exception& e) {
+        qDebug() << e.what();
+    }
+    return nullptr;
+}
+
+bool ResourceCache::isLoadedProviders() noexcept
+{
+    return getInstance()->_providers.count() != 0;
+}
+
+void ResourceCache::notifyLoadedProviders()
+{
+    _event_mutex.lock();
+    notifyComboBoxs();
+    notifyToolBars();
+    _event_mutex.unlock();
+}
+
+void ResourceCache::notifyComboBoxs()
+{
+    auto* cache = getInstance();
+    for (int i = 0; i < cache->_comboboxs.size(); i++)
+        addElementsComboBox(cache->_comboboxs[i]);
+    cache->_comboboxs.clear();
+}
+
+void ResourceCache::notifyToolBars()
+{
+    auto* cache = getInstance();
+    for (int i = 0; i < cache->_toolbars.size(); i++)
+        addButtonsToolBar(cache->_toolbars[i]);
+    cache->_toolbars.clear();
+}
+
+void ResourceCache::addElementsComboBox(QComboBox *combobox)
+{
+    auto array = getInstance()->_providers["data"];
+    if (array.isArray()) {
+        QJsonArray provs = array.toArray();
+        for (int i = 0; i < provs.count(); i++) {
+            combobox->addItem(provs[i].toObject()["name"].toString());
+        }
+    }
+}
+
+static QString getDefaultUrFavicon(const QJsonValueRef& ref)
+{
+    if (ref.isString()) {
+        return ref.toString();
+    } else if (ref.isArray()) {
+        return ref.toArray().last().toString();
+    }
+    qDebug() << "invalid property favicon in JSON";
+    return ""; // invalid JSON
+}
+
+QIcon* ResourceCache::getIconProvider(const QJsonValue& value, const QString& url_icon)
+{   QString name = value.toObject()["name"].toString();
+    QString filename = name.toLower() + "." + QFileInfo(QUrl(url_icon).path()).suffix();
+    QIcon* image = QFile::exists(filename) ? new QIcon(filename) :
+            ResourceCache::downloadImage(url_icon, true, filename);
+    return image;
+}
+
+static void readAllIconProvidersCallback(const QJsonArray& providers,
+                                         QToolBar *toolbar,
+                                         QList<QIcon*>* icons)
+{
+    for (int i = 0; i < providers.count(); i++) {
+        const QString url_favicon = getDefaultUrFavicon(providers[i].toObject()["favicon"]);
+        if (!url_favicon.isEmpty()) {
+            icons->append(ResourceCache::getInstance()->getIconProvider(providers[i], url_favicon));
+        }
+    }
+}
+
+void ResourceCache::addButtonsToolBar(QToolBar *toolbar)
+{
+    auto array = getInstance()->_providers["data"];
+    if (array.isArray()) {
+        QJsonArray* providers = new QJsonArray(array.toArray());
+        QList<QIcon*>* icons = new QList<QIcon*>();
+        QThread* thread = QThread::create(::readAllIconProvidersCallback, *providers, toolbar, icons);
+        QObject::connect(thread, &QThread::finished, thread, [thread, providers, icons, toolbar](){
+            thread->deleteLater();
+            for (int j = 0; j < providers->count(); j++) {
+                toolbar->addAction(*((*icons)[j]), (*providers)[j].toObject()["name"].toString());
+            }
+            delete providers;
+            delete icons;
+        });
+        thread->start();
+    }
+}
+
+ResourceCache *ResourceCache::getInstance()
+{
+    if (_cache == nullptr) _cache = new ResourceCache();
+    return _cache;
 }
 
 void QueryProvidersThread::run()
 {
-    QJsonObject& json = ResourceCache::providers;
+    QJsonObject& json = ResourceCache::getInstance()->_providers;
     const QString fileJson = "providers.json";
-    if (QFile::exists(fileJson))
-    {
-        QFile file(fileJson);
-        if (!file.open(QIODevice::ReadOnly))
-            throw std::exception("Failed to open providers.json file");
-        json = QJsonDocument::fromJson(file.readAll()).object();
-    }
-    else
-    {
-        curl_global_init(CURL_GLOBAL_ALL);
-        CURL *curl = curl_easy_init();
-        if (curl != nullptr)
-        {
-            std::string response;
-            curl_easy_setopt(curl, CURLOPT_URL, URL_JSON_PROVIDERS);
-            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-            curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
-
-            CURLcode res = curl_easy_perform(curl);
-            if(res != CURLE_OK)
-               std::cerr << "HTTP request failed: " << curl_easy_strerror(res) << std::endl;
-            else {
-               try {
-                   json = QJsonDocument::fromJson(QByteArray(response.c_str(), response.length())).object();
-                   SaveJSONProviders(json);
-               }  catch (const QException& e) {
-                   QMessageBox::critical(nullptr, "Error", e.what());
-               }
-            }
-            curl_easy_cleanup(curl);
+    if (QFile::exists(fileJson)) {
+        try {
+            json = ResourceCache::readJson(fileJson);
+            return;
+        }  catch (const std::exception& e) {
+            qDebug() << e.what();
         }
-        curl_global_cleanup();
+    }
+
+    try {
+        CurlConnection curl;
+        curl.setURL(URL_JSON_PROVIDERS);
+        QByteArray response;
+        if (curl.readData(response)) {
+            json = QJsonDocument::fromJson(response).object();
+            ResourceCache::getInstance()->saveFile(fileJson, QJsonDocument(json).toJson());
+        }
+    }  catch (const std::exception& e) {
+        qDebug() << e.what();
     }
 }

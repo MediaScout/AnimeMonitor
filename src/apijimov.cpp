@@ -14,13 +14,32 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include "apijimov.h"
+#include "curlconnection.h"
 
-APIJimov::APIJimov()
+#include <curl/curl.h>
+#include <iostream>
+
+#include <QJsonDocument>
+#include <QByteArray>
+#include <QJsonObject>
+#include <QMessageBox>
+#include <QDebug>
+
+APIJimov::APIJimov() {}
+
+QJsonArray APIJimov::searchAnime(const QString &url)
 {
-
-}
-
-QJsonArray APIJimov::SearchAnime(const QString &server, const QString &name)
-{
+    try {
+        CurlConnection curl;
+        curl.setURL(url);
+        QByteArray data;
+        if (curl.readData(data)) {
+            QJsonObject json = QJsonDocument::fromJson(data).object();
+            QJsonValueRef data = json["results"];
+            if (data.isArray()) return data.toArray();
+        }
+    }  catch (const std::exception& e) {
+        qDebug() << e.what();
+    }
     return QJsonArray();
 }

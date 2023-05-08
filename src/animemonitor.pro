@@ -10,23 +10,21 @@ CONFIG += c++11
 
 SOURCES += \
     apijimov.cpp \
-    browseranime.cpp \
+    curlconnection.cpp \
     main.cpp \
     mainwindow.cpp \
-    newanimedialog.cpp \
+    provider.cpp \
     rescache.cpp
 
 HEADERS += \
     apijimov.h \
-    browseranime.h \
+    curlconnection.h \
     mainwindow.h \
-    newanimedialog.h \
+    provider.h \
     rescache.h
 
 FORMS += \
-    browseranime.ui \
-    mainwindow.ui \
-    newanimedialog.ui
+    mainwindow.ui
 
 QT += network
 
@@ -39,3 +37,6 @@ RC_ICONS = favicon.ico
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
+
+DISTFILES += \
+    ../build-animemonitor-Desktop_Qt_5_12_12_MSVC2017_64bit-Debug/providers.json

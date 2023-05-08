@@ -24,9 +24,10 @@ private:
     APIJimov();
 
 public:
-    const QString API_SERVER = "https://jimov.herokuapp.com";
+    const QString API_SERVER = "https://jimov-api.onrender.com";
 
-    QJsonArray SearchAnime(const QString& server, const QString& name);
+    static QJsonArray searchAnime(const QString& url);
+    static QString concat(const QString& url);
 };
 
 #endif // APIJIMOV_H

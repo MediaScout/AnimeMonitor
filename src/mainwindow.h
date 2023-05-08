@@ -17,6 +17,8 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QThread>
+#include <QJsonArray>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -30,15 +32,21 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
-    void resizeEvent(QResizeEvent *event) override;
-
 private:
     Ui::MainWindow *ui;
+    QThread* _qthsearch = nullptr;
+    QJsonArray results;
 
-    void InitComponents();
-    void AddAnime();
-    void EditAnime();
-    void SearchAction();
-    void InitBrowserAnime();
+    void initComponents();
+    void addAnime();
+    void aditAnime();
+    void searchAction();
+    void initBrowserAnime();
+    void initComboBoxProviders();
+    void initToolBarIconProviders();
+    void listResultClicked(const QModelIndex &index);
+    QString getFilterUrlProvider();
+
+    static void searchAnimeCallback(Ui::MainWindow *ui, const QString& name, MainWindow* window);
 };
 #endif // MAINWINDOW_H

@@ -15,14 +15,18 @@
 
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-#include "newanimedialog.h"
-#include "browseranime.h"
+#include "rescache.h"
+#include "apijimov.h"
+#include "provider.h"
 
 #include <qtoolbar.h>
 #include <QTabWidget>
 #include <QIcon>
 #include <QResizeEvent>
 #include <QMessageBox>
+#include <QJsonArray>
+#include <QJsonObject>
+#include <QDebug>
 
 
 #ifdef QT_DEBUG
@@ -36,25 +40,40 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-    InitComponents();
+    initComponents();
 }
 
-void MainWindow::InitComponents()
+void MainWindow::initComponents()
 {
     auto addButton    = ui->toolBar->addAction(QIcon(APP_IMAGES_DIR + "bookmark_24x24.png"), "Agregar Anime");
     auto editButton   = ui->toolBar->addAction(QIcon(APP_IMAGES_DIR + "trash_24x24.png"), "Editar");
     auto searchButton = ui->toolBar->addAction(QIcon(APP_IMAGES_DIR + "hard-disc-drive_24x24.png"), "Buscar");
 
-    connect(addButton,    &QAction::triggered, this, &MainWindow::AddAnime);
-    connect(editButton,   &QAction::triggered, this, &MainWindow::EditAnime);
-    connect(searchButton, &QAction::triggered, this, &MainWindow::InitBrowserAnime);
-    connect(ui->searchButton, &QPushButton::clicked, this, &MainWindow::SearchAction);
+    connect(addButton,    &QAction::triggered, this, &MainWindow::addAnime);
+    connect(editButton,   &QAction::triggered, this, &MainWindow::aditAnime);
+    connect(searchButton, &QAction::triggered, this, &MainWindow::initBrowserAnime);
+    connect(ui->searchButton, &QPushButton::clicked, this, &MainWindow::searchAction);
 
     ui->listado->setColumnWidth(0, 250);
     ui->listado->horizontalHeaderItem(0)->setTextAlignment(Qt::AlignmentFlag::AlignLeft);
     ui->listado->horizontalHeaderItem(1)->setTextAlignment(Qt::AlignmentFlag::AlignLeft);
     ui->listado->setColumnWidth(3, 150);
     ui->listado->horizontalHeaderItem(3)->setTextAlignment(Qt::AlignmentFlag::AlignLeft);
+
+    connect(ui->listAnimes, &QListView::clicked, this, &MainWindow::listResultClicked);
+
+    /** styles **/
+
+    ui->top_panel_search->setStyleSheet(
+                "QWidget#top_panel_search {"
+                "  background-color: #F0F0F0;"
+                "  border-radius: 5px;"
+                "  border: 1px solid white;"
+                "}"
+            );
+
+    initComboBoxProviders();
+    initToolBarIconProviders();
 }
 
 MainWindow::~MainWindow()
@@ -62,43 +81,94 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-void MainWindow::AddAnime()
+void MainWindow::addAnime()
 {
-    NewAnimeDialog* dialog = new NewAnimeDialog(this);
-    dialog->setModal(true);
-    dialog->show();
 }
 
-void MainWindow::EditAnime()
+void MainWindow::aditAnime()
 {
-
 }
 
-void MainWindow::SearchAction()
+void MainWindow::searchAction()
 {
-    QString text = ui->searchTextBox->text().trimmed();
-    if (text.isEmpty())
-        QMessageBox::warning(this, "Warning", "The text box is empty. Enter the name of the anime");
-    else
-    {
-
+    QString url = getFilterUrlProvider();
+    if (!url.isEmpty()) {
+        if (_qthsearch != nullptr && _qthsearch->isRunning())
+            return;
+        qDebug() << "Buscando " << url;
+        _qthsearch = QThread::create(MainWindow::searchAnimeCallback, ui, url, this);
+        _qthsearch->start();
     }
 }
 
-void MainWindow::InitBrowserAnime()
+void MainWindow::searchAnimeCallback(Ui::MainWindow *ui, const QString& url, MainWindow* window)
 {
-    BrowserAnime* dialog = new BrowserAnime(this);
-    dialog->show();
+    ui->notification->setText("Buscando en el filtro: " + url);
+    auto array_result = APIJimov::searchAnime(url);
+    const int count = array_result.count();
+    if (count == 0) {
+        ui->notification->setText("No se encontraron resultados para " + url);
+    } else {
+        window->results = array_result;
+        ui->notification->setText("Se han encontrado " + QString::number(count) + " resultados.");
+        for (int i = 0; i < count; i++) {
+            QJsonValueRef value = array_result[i].toObject()["name"];
+            if (value.isString()) {
+                ui->listAnimes->addItem(value.toString());
+            }
+        }
+    }
 }
 
-void MainWindow::resizeEvent(QResizeEvent *event)
+void MainWindow::initBrowserAnime()
 {
-    QMainWindow::resizeEvent(event);
-//#ifdef  QT_DEBUG
-//    printf("Width %d Height %d\n", event->size().width(), event->size().height());
-//#endif
+}
 
-//    QSize sz = event->size();
+void MainWindow::initComboBoxProviders()
+{
+    ResourceCache::addComboBox(ui->comboBoxProviders);
+}
 
-//    tabControl->setGeometry(8, toolBar->size().height() + 8, sz.width() - 16, sz.height() - (toolBar->size().height() + 8 + statusBar()->size().height() + 8));
+void MainWindow::initToolBarIconProviders()
+{
+    ui->toolBarProviders->setStyleSheet("QToolBar { border: none; }");
+
+
+    ui->toolBarProviders->setStyleSheet(
+        "QPushButton {"
+        "  border: none;"
+        "  border-radius: 16px;"
+        "  background-image: url(:/images/myimage.png);"
+        "  background-repeat: no-repeat;"
+        "  background-position: center;"
+        "}"
+    );
+
+    ResourceCache::addToolBar(ui->toolBarProviders);
+}
+
+void MainWindow::listResultClicked(const QModelIndex &index)
+{
+    qDebug() << results[index.row()];
+}
+
+QString MainWindow::getFilterUrlProvider()
+{
+    if (ResourceCache::isLoadedProviders()) {
+        QString text = ui->searchTextBox->text().trimmed();
+        if (text.isEmpty()) {
+            QMessageBox::warning(this, "Warning", "The text box is empty. Enter the name of the anime");
+        } else {
+            const int index = ui->comboBoxProviders->currentIndex();
+            if (index != -1) {
+                QString item = ui->comboBoxProviders->itemText(index);
+                for (const auto& provider : Provider::getProviders()) {
+                    if (provider->getName() == item) {
+                        return provider->createFilterUrl(text);
+                    }
+                }
+            }
+        }
+    }
+    return QString();
 }

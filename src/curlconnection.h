@@ -13,25 +13,31 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef BROWSERANIME_H
-#define BROWSERANIME_H
+#ifndef CURLCONNECTION_H
+#define CURLCONNECTION_H
 
-#include <QMainWindow>
+#include <QObject>
+#include <QByteArray>
+#include <curl/curl.h>
 
-namespace Ui {
-class BrowserAnime;
-}
-
-class BrowserAnime : public QMainWindow
+class CurlConnection : public QObject
 {
     Q_OBJECT
-
 public:
-    explicit BrowserAnime(QWidget *parent = nullptr);
-    ~BrowserAnime();
+    explicit CurlConnection(QObject *parent = nullptr);
+    ~CurlConnection();
+
+    CurlConnection &setURL(const QString& url) noexcept;
+    CurlConnection &followLocation(bool enable) noexcept;
+    bool readData(QByteArray& byteArray);
 
 private:
-    Ui::BrowserAnime *ui;
+    CURL* curl = nullptr;
+
+    static size_t writeCallback(char *ptr, size_t size, size_t nmemb, QByteArray *userdata);
+
+signals:
+
 };
 
-#endif // BROWSERANIME_H
+#endif // CURLCONNECTION_H
