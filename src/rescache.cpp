@@ -105,6 +105,20 @@ QJsonObject ResourceCache::readJson(const QString &filename)
     return object;
 }
 
+QImage ResourceCache::getImage(const Provider &prov)
+{
+    QFile fileicon(prov.getName().toLower());
+    QDir relative_dir("./");
+    auto list = relative_dir.entryList(QStringList() << QString(prov.getName().toLower()).append(".*"), QDir::Files);
+    for (const auto &filename : list) {
+        QString ext = QFileInfo(relative_dir, filename).suffix().toLower();
+        if (QStringList({"png", "jpg", "jpeg", "bmp"}).contains(ext)) {
+            return QImage(filename);
+        }
+    }
+    return QImage("photo.png");
+}
+
 QIcon* ResourceCache::downloadImage(const QString &url, bool save, const QString& name)
 {
     try {
@@ -187,7 +201,6 @@ QIcon* ResourceCache::getIconProvider(const QJsonValue& value, const QString& ur
 }
 
 static void readAllIconProvidersCallback(const QJsonArray& providers,
-                                         QToolBar *toolbar,
                                          QList<QIcon*>* icons)
 {
     for (int i = 0; i < providers.count(); i++) {
@@ -204,7 +217,7 @@ void ResourceCache::addButtonsToolBar(QToolBar *toolbar)
     if (array.isArray()) {
         QJsonArray* providers = new QJsonArray(array.toArray());
         QList<QIcon*>* icons = new QList<QIcon*>();
-        QThread* thread = QThread::create(::readAllIconProvidersCallback, *providers, toolbar, icons);
+        QThread* thread = QThread::create(::readAllIconProvidersCallback, *providers, icons);
         QObject::connect(thread, &QThread::finished, thread, [thread, providers, icons, toolbar](){
             thread->deleteLater();
             for (int j = 0; j < providers->count(); j++) {

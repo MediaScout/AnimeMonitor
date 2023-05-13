@@ -19,14 +19,17 @@
 #include <QObject>
 #include <QJsonObject>
 #include <QJsonArray>
+#include <QImage>
+
+#include "constants.h"
 
 class Provider : public QObject
 {
     Q_OBJECT
 public:
-    const char* URLFORMAT_API_FILTER = "https://jimov.herokuapp.com/anime/%s/filter?title=%s";
 
     explicit Provider(QObject *parent = nullptr);
+    Provider(const Provider& provider);
     Provider(const QJsonObject& provider);
 
     QString getName() const { return _name; }
@@ -34,6 +37,7 @@ public:
     QString getUrl() const { return _url; }
     QString getDescription() const { return _description; }
     QString getLanguage() const { return _language; }
+    QImage getImage() const;
     QString createFilterUrl(const QString& search) const;
 
     static void setProviders(const QJsonArray& array) noexcept;
@@ -41,6 +45,7 @@ public:
 
 private:
     static QList<Provider*> _providers;
+    const char* URLFORMAT_API_FILTER = API_SERVER "/anime/%s/filter?title=%s";
 
     QString _name;
     QString _url_path;

@@ -1,0 +1,33 @@
+QComboBox {
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background-color: white;
+    color: #333;
+    /* font-size: 16px; */
+}
+
+QComboBox::drop-down {
+    border: none;
+    width: 25px;
+    height: 100%;
+    background-color: #ccc;
+    border-top-right-radius: 5px;
+    border-bottom-right-radius: 5px;
+}
+
+QComboBox::down-arrow {
+    image: url(../css/search_icon.png);
+    width: 16px;
+    height: 16px;
+    margin: auto;
+}
+
+QComboBox:hover {
+    border-color: #aaa;
+}
+
+QComboBox:focus {
+    border-color: #0078d7;
+    outline: none;
+}

@@ -13,20 +13,29 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef APIJIMOV_H
-#define APIJIMOV_H
+#include "infoprovdlg.h"
+#include "ui_infoprovdlg.h"
 
-#include <qjsonarray.h>
-#include <QObject>
+#include <QPixmap>
 
-class APIJimov
+InfoProviderDialog::InfoProviderDialog(const Provider& prov, QWidget *parent) :
+    QDialog(parent),
+    ui(new Ui::infoprovdlg)
 {
-private:
-    APIJimov();
+    ui->setupUi(this);
 
-public:
-    static QJsonArray searchAnime(const QString& url);
-    static QString concat(const QString& url);
-};
+    ui->label_name->setText(prov.getName());
+    ui->label_language->setText(prov.getLanguage());
+    ui->label_description->setText(prov.getDescription());
+    ui->label_photo->setPixmap(QPixmap::fromImage(prov.getImage()));
 
-#endif // APIJIMOV_H
+    QString link = prov.getUrl();
+    if (!link.isEmpty() && link != "NA")
+        link = "<a href=\"" + link + "\">" + link + "</a>";
+    ui->label_url->setText(link);
+}
+
+InfoProviderDialog::~InfoProviderDialog()
+{
+    delete ui;
+}

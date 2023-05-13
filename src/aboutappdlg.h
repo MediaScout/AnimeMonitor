@@ -13,20 +13,25 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef APIJIMOV_H
-#define APIJIMOV_H
+#ifndef ABOUTAPPDLG_H
+#define ABOUTAPPDLG_H
 
-#include <qjsonarray.h>
-#include <QObject>
+#include <QDialog>
 
-class APIJimov
+namespace Ui {
+class AboutAppDialog;
+}
+
+class AboutAppDialog : public QDialog
 {
-private:
-    APIJimov();
+    Q_OBJECT
 
 public:
-    static QJsonArray searchAnime(const QString& url);
-    static QString concat(const QString& url);
+    explicit AboutAppDialog(QWidget *parent = nullptr);
+    ~AboutAppDialog();
+
+private:
+    Ui::AboutAppDialog *ui;
 };
 
-#endif // APIJIMOV_H
+#endif // ABOUTAPPDLG_H

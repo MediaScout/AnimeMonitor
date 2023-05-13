@@ -13,20 +13,26 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef APIJIMOV_H
-#define APIJIMOV_H
+#ifndef INFOPROVDLG_H
+#define INFOPROVDLG_H
 
-#include <qjsonarray.h>
-#include <QObject>
+#include <QDialog>
+#include "provider.h"
 
-class APIJimov
+namespace Ui {
+class infoprovdlg;
+}
+
+class InfoProviderDialog : public QDialog
 {
-private:
-    APIJimov();
+    Q_OBJECT
 
 public:
-    static QJsonArray searchAnime(const QString& url);
-    static QString concat(const QString& url);
+    explicit InfoProviderDialog(const Provider& prov, QWidget *parent = nullptr);
+    ~InfoProviderDialog();
+
+private:
+    Ui::infoprovdlg *ui;
 };
 
-#endif // APIJIMOV_H
+#endif // INFOPROVDLG_H

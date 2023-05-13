@@ -1,0 +1,94 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-size: 16px;
+}
+
+.container-main {
+  margin: 2rem;
+  display: grid;
+  grid-template-columns: 1fr 8fr;
+  grid-template-rows: 1fr 0fr;
+  grid-column-gap: 30px;
+}
+
+/* -------------------------------------- */
+.list-results ul {
+  background: gray;
+  max-height: auto;
+  padding: 20px;
+}
+.list-results ul li {
+  list-style: none;
+  margin-bottom: 8px;
+}
+.list-results ul li:nth-last-child(1) {
+  margin-bottom: 0;
+}
+
+/* -------------------------------------- */
+
+/* -------------------------------------- */
+
+.container-info {
+  max-width: 50%;
+}
+.info-anime img {
+  object-fit: contain;
+}
+.info {
+  display: flex;
+  flex-direction: column;
+  margin: 0 0 0 10px;
+}
+
+.info-anime {
+  display: flex;
+}
+
+.info-anime .generos {
+  margin: 15px 0;
+}
+.info-anime .generos span {
+  background-color: darkgrey;
+  padding: 5px 10px;
+}
+
+/* -------------------------------------- */
+
+.epi {
+  margin: 20px 0;
+}
+.epi img {
+  object-fit: cover;
+}
+
+.epi .card-episodio {
+  display: flex;
+  flex-wrap: wrap;
+}
+.epi .card-episodio .card {
+  display: flex;
+  flex-direction: column;
+  margin: 10px 15px 10px 0;
+}
+
+.card img {
+	border-radius: 6px;
+}
+
+.info-anime img {
+	border-radius: 6px;
+}
+
+.generos span {
+	border-radius: 4px;
+}
+
+.list-results ul {
+	border-radius: 8px;
+}

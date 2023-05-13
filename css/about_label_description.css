@@ -1,0 +1,6 @@
+QLabel#about_label_description {
+    background-color: #F0F0F0;
+    border-radius: 5px;
+    border: 1px solid white;
+    padding: 5px;
+}

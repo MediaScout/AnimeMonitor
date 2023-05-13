@@ -13,20 +13,22 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef APIJIMOV_H
-#define APIJIMOV_H
+#include "themestyle.h"
+#include "constants.h"
+#include <exception>
 
-#include <qjsonarray.h>
-#include <QObject>
+#include <QFile>
 
-class APIJimov
+ThemeStyle::ThemeStyle() {}
+
+void ThemeStyle::setStyleSheet(QWidget *widget)
 {
-private:
-    APIJimov();
-
-public:
-    static QJsonArray searchAnime(const QString& url);
-    static QString concat(const QString& url);
-};
-
-#endif // APIJIMOV_H
+    if (widget == nullptr || widget->objectName().isEmpty()) return;
+    QFile css_file(APP_CSS_DIR + widget->objectName() + ".css");
+    if (css_file.exists()) {
+        if (!css_file.open(QIODevice::ReadOnly))
+            throw std::exception(_C_STR(css_file.errorString()));
+        widget->setStyleSheet(QString(css_file.readAll()));
+        css_file.close();
+    }
+}

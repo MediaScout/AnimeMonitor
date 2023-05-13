@@ -15,6 +15,7 @@
 
 #include "apijimov.h"
 #include "curlconnection.h"
+#include "constants.h"
 
 #include <curl/curl.h>
 #include <iostream>
@@ -42,4 +43,12 @@ QJsonArray APIJimov::searchAnime(const QString &url)
         qDebug() << e.what();
     }
     return QJsonArray();
+}
+
+QString APIJimov::concat(const QString &url)
+{
+    QString path = url;
+    if (path.length() > 0 && path[0] != '/')
+        path = "/" + path;
+    return API_SERVER + path;
 }

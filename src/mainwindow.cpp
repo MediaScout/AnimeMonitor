@@ -18,6 +18,10 @@
 #include "rescache.h"
 #include "apijimov.h"
 #include "provider.h"
+#include "infoprovdlg.h"
+#include "constants.h"
+#include "aboutappdlg.h"
+#include "themestyle.h"
 
 #include <qtoolbar.h>
 #include <QTabWidget>
@@ -29,12 +33,6 @@
 #include <QDebug>
 
 
-#ifdef QT_DEBUG
-    #define APP_IMAGES_DIR QString("../images/")
-#else
-    #define APP_IMAGES_DIR QString()
-#endif
-
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
@@ -45,14 +43,19 @@ MainWindow::MainWindow(QWidget *parent)
 
 void MainWindow::initComponents()
 {
-    auto addButton    = ui->toolBar->addAction(QIcon(APP_IMAGES_DIR + "bookmark_24x24.png"), "Agregar Anime");
-    auto editButton   = ui->toolBar->addAction(QIcon(APP_IMAGES_DIR + "trash_24x24.png"), "Editar");
-    auto searchButton = ui->toolBar->addAction(QIcon(APP_IMAGES_DIR + "hard-disc-drive_24x24.png"), "Buscar");
+    auto addButton     = ui->toolBar->addAction(QIcon(APP_IMAGES_DIR + "bookmark_32x32.png"), "Agregar Anime");
+    auto editButton    = ui->toolBar->addAction(QIcon(APP_IMAGES_DIR + "trash_32x32.png"), "Editar");
+    auto searchButton  = ui->toolBar->addAction(QIcon(APP_IMAGES_DIR + "hard-disc-drive_32x32.png"), "Buscar");
+    auto optionsButton = ui->toolBar->addAction(QIcon(APP_IMAGES_DIR + "settings_32x32.png"), "Opciones");
+    auto aboutButton   = ui->toolBar->addAction(QIcon(APP_IMAGES_DIR + "star_32x32.png"), "Acerca de");
 
-    connect(addButton,    &QAction::triggered, this, &MainWindow::addAnime);
-    connect(editButton,   &QAction::triggered, this, &MainWindow::aditAnime);
-    connect(searchButton, &QAction::triggered, this, &MainWindow::initBrowserAnime);
-    connect(ui->searchButton, &QPushButton::clicked, this, &MainWindow::searchAction);
+    connect(optionsButton,    &QAction::triggered, this, &MainWindow::showOptionsDialog);
+    connect(aboutButton,      &QAction::triggered, this, &MainWindow::showAboutAppDialog);
+    connect(addButton,        &QAction::triggered, this, &MainWindow::addAnime);
+    connect(editButton,       &QAction::triggered, this, &MainWindow::editAnime);
+    connect(searchButton,     &QAction::triggered, this, &MainWindow::initBrowserAnime);
+    connect(ui->search_button, &QPushButton::clicked, this, &MainWindow::searchAction);
+    connect(ui->button_info_provider, &QPushButton::clicked, this, &MainWindow::showInfoProviderDialog);
 
     ui->listado->setColumnWidth(0, 250);
     ui->listado->horizontalHeaderItem(0)->setTextAlignment(Qt::AlignmentFlag::AlignLeft);
@@ -60,17 +63,21 @@ void MainWindow::initComponents()
     ui->listado->setColumnWidth(3, 150);
     ui->listado->horizontalHeaderItem(3)->setTextAlignment(Qt::AlignmentFlag::AlignLeft);
 
-    connect(ui->listAnimes, &QListView::clicked, this, &MainWindow::listResultClicked);
+    QFile file("../html/panel-search/index.html");
+    if (file.open(QIODevice::ReadOnly | QIODevice::Text))
+    {
+        QString html = file.readAll();
+        ui->textBrowser->setHtml(html);
+        file.close();
+    }
 
-    /** styles **/
+    //connect(ui->listAnimes, &QListView::clicked, this, &MainWindow::listResultClicked);
 
-    ui->top_panel_search->setStyleSheet(
-                "QWidget#top_panel_search {"
-                "  background-color: #F0F0F0;"
-                "  border-radius: 5px;"
-                "  border: 1px solid white;"
-                "}"
-            );
+    /** set styles **/
+    ThemeStyle::setStyleSheet(ui->top_panel_search);
+    /*ThemeStyle::setTheme(ui->combobox_providers);
+    ThemeStyle::setTheme(ui->search_lineedit);
+    ThemeStyle::setTheme(ui->search_button);*/
 
     initComboBoxProviders();
     initToolBarIconProviders();
@@ -81,12 +88,48 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
+Provider MainWindow::getSelectedProvider() const
+{
+    const int index = ui->combobox_providers->currentIndex();
+    if (index != -1) {
+        QString item = ui->combobox_providers->itemText(index);
+        for (const auto& provider : Provider::getProviders()) {
+            if (provider->getName() == item) {
+                return *provider;
+            }
+        }
+    }
+    return Provider();
+}
+
 void MainWindow::addAnime()
 {
 }
 
-void MainWindow::aditAnime()
+void MainWindow::editAnime()
 {
+}
+
+void MainWindow::showOptionsDialog()
+{
+
+}
+
+void MainWindow::showInfoProviderDialog()
+{
+    Provider provider = getSelectedProvider();
+    if (!provider.getName().isEmpty()) {
+        InfoProviderDialog* dialog = new InfoProviderDialog(provider, this);
+        dialog->setModal(true);
+        dialog->show();
+    }
+}
+
+void MainWindow::showAboutAppDialog()
+{
+    AboutAppDialog* dialog = new AboutAppDialog(this);
+    dialog->setModal(true);
+    dialog->show();
 }
 
 void MainWindow::searchAction()
@@ -114,7 +157,7 @@ void MainWindow::searchAnimeCallback(Ui::MainWindow *ui, const QString& url, Mai
         for (int i = 0; i < count; i++) {
             QJsonValueRef value = array_result[i].toObject()["name"];
             if (value.isString()) {
-                ui->listAnimes->addItem(value.toString());
+                //ui->listAnimes->addItem(value.toString());
             }
         }
     }
@@ -122,28 +165,16 @@ void MainWindow::searchAnimeCallback(Ui::MainWindow *ui, const QString& url, Mai
 
 void MainWindow::initBrowserAnime()
 {
+
 }
 
 void MainWindow::initComboBoxProviders()
 {
-    ResourceCache::addComboBox(ui->comboBoxProviders);
+    ResourceCache::addComboBox(ui->combobox_providers);
 }
 
 void MainWindow::initToolBarIconProviders()
 {
-    ui->toolBarProviders->setStyleSheet("QToolBar { border: none; }");
-
-
-    ui->toolBarProviders->setStyleSheet(
-        "QPushButton {"
-        "  border: none;"
-        "  border-radius: 16px;"
-        "  background-image: url(:/images/myimage.png);"
-        "  background-repeat: no-repeat;"
-        "  background-position: center;"
-        "}"
-    );
-
     ResourceCache::addToolBar(ui->toolBarProviders);
 }
 
@@ -155,18 +186,13 @@ void MainWindow::listResultClicked(const QModelIndex &index)
 QString MainWindow::getFilterUrlProvider()
 {
     if (ResourceCache::isLoadedProviders()) {
-        QString text = ui->searchTextBox->text().trimmed();
+        QString text = ui->search_lineedit->text().trimmed();
         if (text.isEmpty()) {
             QMessageBox::warning(this, "Warning", "The text box is empty. Enter the name of the anime");
         } else {
-            const int index = ui->comboBoxProviders->currentIndex();
-            if (index != -1) {
-                QString item = ui->comboBoxProviders->itemText(index);
-                for (const auto& provider : Provider::getProviders()) {
-                    if (provider->getName() == item) {
-                        return provider->createFilterUrl(text);
-                    }
-                }
+            Provider provider = getSelectedProvider();
+            if (!provider.getName().isEmpty()) {
+                return provider.createFilterUrl(text);
             }
         }
     }

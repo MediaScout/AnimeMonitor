@@ -25,6 +25,8 @@
 
 #define URL_JSON_PROVIDERS "https://jimov.herokuapp.com/providers"
 
+class Provider;
+
 class ResourceCache: public QObject
 {
     Q_OBJECT
@@ -33,6 +35,7 @@ public:
     static void addComboBox(QComboBox* combobox);
     static void addToolBar(QToolBar* toolbar);
     static QJsonObject readJson(const QString& filename);
+    static QImage getImage(const Provider& prov);
     void saveFile(const QString& filename, const QByteArray& byteArray);
     static QIcon* downloadImage(const QString& url, bool save = true, const QString& name = nullptr);
     static const QJsonObject& getProviders() { return getInstance()->_providers; }
@@ -47,7 +50,7 @@ private:
 
     friend class QueryProvidersThread;
     friend class MainWindow;
-    friend void readAllIconProvidersCallback(const QJsonArray&, QToolBar*, QList<QIcon*>*);
+    friend void readAllIconProvidersCallback(const QJsonArray&, QList<QIcon*>*);
 
     ResourceCache(QObject* parent = nullptr) : QObject(parent) {}
 

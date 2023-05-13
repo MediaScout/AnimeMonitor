@@ -14,10 +14,21 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include "provider.h"
+#include "constants.h"
+#include "rescache.h"
 
 QList<Provider*> Provider::_providers;
 
 Provider::Provider(QObject *parent) : QObject(parent) {}
+
+Provider::Provider(const Provider &provider)
+{
+    _name        = provider._name;
+    _url_path    = provider._url_path;
+    _language    = provider._language;
+    _url         = provider._url;
+    _description = provider._description;
+}
 
 Provider::Provider(const QJsonObject &provider)
 {
@@ -28,12 +39,16 @@ Provider::Provider(const QJsonObject &provider)
     _description = provider["description"].toString();
 }
 
+QImage Provider::getImage() const
+{
+    return ResourceCache::getImage(*this);
+}
+
 QString Provider::createFilterUrl(const QString &search) const
 {
     QString text = search;
     text.replace(" ", "%20");
-    return QString::asprintf(URLFORMAT_API_FILTER, _url_path.toStdString().c_str(),
-                             text.toStdString().c_str());
+    return QString::asprintf(URLFORMAT_API_FILTER, _C_STR(_url_path), _C_STR(text));
 }
 
 void Provider::setProviders(const QJsonArray &array) noexcept

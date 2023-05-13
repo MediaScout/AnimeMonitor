@@ -13,20 +13,22 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef APIJIMOV_H
-#define APIJIMOV_H
+#ifndef THEMESTYLE_H
+#define THEMESTYLE_H
 
-#include <qjsonarray.h>
 #include <QObject>
+#include <QWidget>
 
-class APIJimov
+class ThemeStyle : public QObject
 {
+    Q_OBJECT
 private:
-    APIJimov();
+    ThemeStyle();
 
 public:
-    static QJsonArray searchAnime(const QString& url);
-    static QString concat(const QString& url);
+    static void setStyleSheet(QWidget* widget);
+signals:
+
 };
 
-#endif // APIJIMOV_H
+#endif // THEMESTYLE_H

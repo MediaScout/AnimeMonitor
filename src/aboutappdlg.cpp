@@ -13,20 +13,21 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef APIJIMOV_H
-#define APIJIMOV_H
+#include "aboutappdlg.h"
+#include "ui_aboutappdlg.h"
 
-#include <qjsonarray.h>
-#include <QObject>
+#include <QPixmap>
+#include <QImage>
 
-class APIJimov
+AboutAppDialog::AboutAppDialog(QWidget *parent) :
+    QDialog(parent),
+    ui(new Ui::AboutAppDialog)
 {
-private:
-    APIJimov();
+    ui->setupUi(this);
+    ui->label_about_image->setPixmap(QPixmap::fromImage(QImage("about_image.png")));
+}
 
-public:
-    static QJsonArray searchAnime(const QString& url);
-    static QString concat(const QString& url);
-};
-
-#endif // APIJIMOV_H
+AboutAppDialog::~AboutAppDialog()
+{
+    delete ui;
+}

@@ -1,0 +1,14 @@
+QLineEdit {
+    padding: 3px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+QLineEdit:hover {
+    border-color: #aaa;
+}
+
+QLineEdit:focus {
+    border-color: #0078d7;
+    outline: none;
+}

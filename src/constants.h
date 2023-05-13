@@ -13,20 +13,19 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef APIJIMOV_H
-#define APIJIMOV_H
+#ifndef CONSTANTS_H
+#define CONSTANTS_H
 
-#include <qjsonarray.h>
-#include <QObject>
+#define API_SERVER "https://jimov-api.onrender.com"
 
-class APIJimov
-{
-private:
-    APIJimov();
+#define _C_STR(qstr) qstr.toStdString().c_str()
 
-public:
-    static QJsonArray searchAnime(const QString& url);
-    static QString concat(const QString& url);
-};
+#ifdef QT_DEBUG
+    #define APP_IMAGES_DIR QString("../images/")
+    #define APP_CSS_DIR    QString("../css/"   )
+#else
+    #define APP_IMAGES_DIR QString()
+    #define APP_CSS_DIR QString()
+#endif
 
-#endif // APIJIMOV_H
+#endif // CONSTANTS_H
